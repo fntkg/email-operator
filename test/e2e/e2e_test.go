@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/fntkg/k8s-operator/test/utils"
+	"github.com/fntkg/email-operator/test/utils"
 )
 
 const namespace = "k8s-operator-system"

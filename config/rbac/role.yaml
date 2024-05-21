@@ -1,15 +1,58 @@
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  labels:
-    app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: manager-role
-    app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: k8s-operator
-    app.kubernetes.io/part-of: k8s-operator
-    app.kubernetes.io/managed-by: kustomize
   name: manager-role
 rules:
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - email.example.com
+  resources:
+  - emails
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - email.example.com
+  resources:
+  - emails/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - email.example.com
+  resources:
+  - emails/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - email.example.com
+  resources:
+  - emailsenderconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - email.example.com
+  resources:
+  - emailsenderconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - email.example.com
+  resources:
+  - emailsenderconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
