@@ -6,6 +6,7 @@ import (
 
 // EmailSenderConfigSpec defines the desired state of EmailSenderConfig
 type EmailSenderConfigSpec struct {
+	Provider          string `json:"provider"`
 	APITokenSecretRef string `json:"apiTokenSecretRef"`
 	SenderEmail       string `json:"senderEmail"`
 }

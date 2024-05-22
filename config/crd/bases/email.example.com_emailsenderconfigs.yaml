@@ -36,10 +36,13 @@ spec:
             properties:
               apiTokenSecretRef:
                 type: string
+              provider:
+                type: string
               senderEmail:
                 type: string
             required:
             - apiTokenSecretRef
+            - provider
             - senderEmail
             type: object
           status:

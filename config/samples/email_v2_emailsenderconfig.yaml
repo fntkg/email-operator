@@ -2,13 +2,13 @@ apiVersion: email.example.com/v1
 kind: EmailSenderConfig
 metadata:
   labels:
-    app.kubernetes.io/name: emailsenderconfig-mailgun
+    app.kubernetes.io/name: emailsenderconfig-mailersend
     app.kubernetes.io/instance: emailsenderconfig-sample
     app.kubernetes.io/part-of: k8s-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: k8s-operator
-  name: emailsenderconfig-mailgun
+  name: emailsenderconfig-mailersend
 spec:
-  provider: mailgun
-  apiTokenSecretRef: mailgun-token
-  senderEmail: operator@sandboxa700e1130b454e78b3c44dc3aa3ae8f9.mailgun.org
+  provider: mailersend
+  apiTokenSecretRef: mailersend-token
+  senderEmail: operator@trial-o65qngkk683gwr12.mlsender.net

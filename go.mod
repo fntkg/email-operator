@@ -10,6 +10,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.16.3
 )
 
+require github.com/go-chi/chi/v5 v5.0.8 // indirect
+
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -36,6 +38,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mailersend/mailersend-go v1.5.1 // indirect
+	github.com/mailgun/mailgun-go/v4 v4.12.0
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	emailv1 "github.com/fntkg/email-operator/api/v1"
 	"github.com/go-logr/logr"
@@ -23,7 +24,7 @@ type EmailSenderConfigReconciler struct {
 //+kubebuilder:rbac:groups=email.example.com,resources=emailsenderconfigs/finalizers,verbs=update
 
 func (r *EmailSenderConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("emailsenderconfig", req.NamespacedName)
+	log := ctrllog.FromContext(ctx)
 
 	// Fetch the EmailSenderConfig instance
 	var emailSenderConfig emailv1.EmailSenderConfig
@@ -40,7 +41,17 @@ func (r *EmailSenderConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *EmailSenderConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	/*return ctrl.NewControllerManagedBy(mgr).
+	For(&emailv1.EmailSenderConfig{}).
+	Complete(r)
+	*/
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&emailv1.EmailSenderConfig{}).
 		Complete(r)
+	if err != nil {
+		r.Log.Error(err, "unable to create controller")
+		return err
+	}
+	r.Log.Info("controller set up with manager successfully")
+	return nil
 }

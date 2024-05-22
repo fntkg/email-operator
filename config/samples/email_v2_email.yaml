@@ -7,9 +7,9 @@ metadata:
     app.kubernetes.io/part-of: k8s-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: k8s-operator
-  name: email-sample-mailgun
+  name: email-sample-mailersend
 spec:
-  senderConfigRef: emailsenderconfig-mailgun
+  senderConfigRef: emailsenderconfig-mailersend
   recipientEmail: garces.g1999@gmail.com
   subject: test-subject
   body: test-body
