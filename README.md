@@ -69,7 +69,7 @@ metadata:
     name: mailersend-token
 type: Opaque
 data:
-    apiToken: YzRlN2ExZTMzNTU4Y2I4ZDRiNDExMjJiNzhlODUyYTExNTYxYWRkY2Y2YTA1NmU0ZTJjMTg3ZTE5ODBiNTVlZA==
+    apiToken: asdfasdfasfdasdfasdfasdfasdfasdfasdf
 ```
 
 Remember that each `EmailSenderConfig` has to point to a secret in the cluster.
