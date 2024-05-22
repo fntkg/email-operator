@@ -44,121 +44,44 @@ func (r *EmailReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	// Check if the email is already sent
-	if email.Status.DeliveryStatus != "Sent" {
-		// Fetch the EmailSenderConfig referenced by the Email
-		var emailSenderConfig emailv1.EmailSenderConfig
-		if err := r.Get(ctx, client.ObjectKey{Name: email.Spec.SenderConfigRef, Namespace: req.Namespace}, &emailSenderConfig); err != nil {
-			log.Error(err, "unable to fetch EmailSenderConfig")
-			return ctrl.Result{}, err
-		}
-
-		secret := &corev1.Secret{}
-		secretName := emailSenderConfig.Spec.APITokenSecretRef
-		err := r.Client.Get(ctx, types.NamespacedName{Name: secretName, Namespace: req.Namespace}, secret)
-		if err != nil {
-			log.Error(err, "unable to fetch Secret", "secret", secretName)
-			return ctrl.Result{}, err
-		}
-
-		// Get the API token from the Secret
-		apiToken, ok := secret.Data["apiToken"]
-		if !ok {
-			log.Error(fmt.Errorf("apiToken not found in secret"), "secret", secretName)
-			return ctrl.Result{}, err
-		}
-
-		provider := emailSenderConfig.Spec.Provider
-		switch provider {
-		case "mailersend":
-			token := "mlsn." + string(apiToken[:])
-			ms := mailersend.NewMailersend(string(token))
-
-			// Define the email content and recipient details
-			subject := email.Spec.Subject
-			text := email.Spec.Body
-
-			from := mailersend.From{
-				Email: emailSenderConfig.Spec.SenderEmail,
-			}
-
-			recipients := []mailersend.Recipient{
-				{
-					Email: email.Spec.RecipientEmail,
-				},
-			}
-
-			// Create the new message
-			message := ms.Email.NewMessage()
-
-			// Setup the new message
-			message.SetFrom(from)
-			message.SetRecipients(recipients)
-			message.SetSubject(subject)
-			message.SetText(text)
-
-			// Send the message
-			res, err := ms.Email.Send(ctx, message)
-			if err != nil {
-				log.Error(err, "unable to send email")
-				email.Status.DeliveryStatus = "Failed"
-				email.Status.Error = err.Error()
-				if err := r.Status().Update(ctx, &email); err != nil {
-					log.Error(err, "unable to update Email status")
-				}
-				return ctrl.Result{}, err
-			}
-
-			// Update the Email status
-			email.Status.DeliveryStatus = "Sent"
-			email.Status.MessageID = res.Header.Get("X-Message-Id")
-			if err := r.Status().Update(ctx, &email); err != nil {
-				log.Error(err, "unable to update Email status")
-				return ctrl.Result{}, err
-			}
-		case "mailgun":
-			// 4d1c68aa48bf068f5cbf704a62de0633-a2dd40a3-194f2a01
-			senderEmail := emailSenderConfig.Spec.SenderEmail
-			re := regexp.MustCompile(`@(.+)$`)
-			domain := re.FindStringSubmatch(senderEmail)
-
-			// Create an instance of the Mailgun Client
-			token := string(apiToken[:])
-			mg := mailgun.NewMailgun(domain[1], token)
-
-			sender := emailSenderConfig.Spec.SenderEmail
-			subject := email.Spec.Subject
-			body := email.Spec.Body
-			recipient := email.Spec.RecipientEmail
-
-			// The message object allows you to add attachments and Bcc recipients
-			message := mg.NewMessage(sender, subject, body, recipient)
-
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-			defer cancel()
-
-			// Send the message with a 10 second timeout
-			_, id, err := mg.Send(ctx, message)
-			if err != nil {
-				log.Error(err, "unable to send email")
-				return ctrl.Result{}, err
-			}
-
-			// Update the Email status
-			email.Status.DeliveryStatus = "Sent"
-			email.Status.MessageID = id
-			if err := r.Status().Update(ctx, &email); err != nil {
-				log.Error(err, "unable to update Email status")
-				return ctrl.Result{}, err
-			}
-		default:
-			log.Error(fmt.Errorf("provider not supported"), "provider", provider)
-		}
-
-		log.Info("Email sent successfully", "Email", email)
-
+	if email.Status.DeliveryStatus == "Sent" {
+		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{}, nil
+	// Fetch the EmailSenderConfig referenced by the Email
+	var emailSenderConfig emailv1.EmailSenderConfig
+	if err := r.Get(ctx, client.ObjectKey{Name: email.Spec.SenderConfigRef, Namespace: req.Namespace}, &emailSenderConfig); err != nil {
+		log.Error(err, "unable to fetch EmailSenderConfig")
+		return ctrl.Result{}, err
+	}
+
+	// Fetch the Secret referenced by the EmailSenderConfig
+	secret := &corev1.Secret{}
+	secretName := emailSenderConfig.Spec.APITokenSecretRef
+	err := r.Client.Get(ctx, types.NamespacedName{Name: secretName, Namespace: req.Namespace}, secret)
+	if err != nil {
+		log.Error(err, "unable to fetch Secret", "secret", secretName)
+		return ctrl.Result{}, err
+	}
+
+	// Get the API token from the Secret
+	apiToken, ok := secret.Data["apiToken"]
+	if !ok {
+		log.Error(fmt.Errorf("apiToken not found in secret"), "secret", secretName)
+		return ctrl.Result{}, err
+	}
+
+	// Send the email using the provider specified in the EmailSenderConfig
+	switch emailSenderConfig.Spec.Provider {
+	case "mailersend":
+		return r.sendWithMailersend(ctx, emailSenderConfig, email, apiToken)
+	case "mailgun":
+		return r.sendWithMailgun(ctx, emailSenderConfig, email, apiToken)
+	default:
+		err := fmt.Errorf("provider not supported")
+		log.Error(err, "provider", emailSenderConfig.Spec.Provider)
+		return ctrl.Result{}, err
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -166,4 +89,70 @@ func (r *EmailReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&emailv1.Email{}).
 		Complete(r)
+}
+
+func (r *EmailReconciler) sendWithMailersend(ctx context.Context, config emailv1.EmailSenderConfig, email emailv1.Email, apiToken []byte) (ctrl.Result, error) {
+	log := ctrllog.FromContext(ctx)
+	token := "mlsn." + string(apiToken)
+	ms := mailersend.NewMailersend(token)
+
+	// Define the email content and recipient details
+	message := ms.Email.NewMessage()
+	message.SetFrom(mailersend.From{Email: config.Spec.SenderEmail})
+	message.SetRecipients([]mailersend.Recipient{{Email: email.Spec.RecipientEmail}})
+	message.SetSubject(email.Spec.Subject)
+	message.SetText(email.Spec.Body)
+
+	// Send the message
+	res, err := ms.Email.Send(ctx, message)
+	if err != nil {
+		log.Error(err, "unable to send email")
+		return r.updateEmailStatus(ctx, &email, "Failed", err.Error())
+	}
+
+	// Update the Email status
+	return r.updateEmailStatus(ctx, &email, "Sent", res.Header.Get("X-Message-Id"))
+}
+
+func (r *EmailReconciler) sendWithMailgun(ctx context.Context, config emailv1.EmailSenderConfig, email emailv1.Email, apiToken []byte) (ctrl.Result, error) {
+	log := ctrllog.FromContext(ctx)
+
+	// Extract the domain from the sender email
+	re := regexp.MustCompile(`@(.+)$`)
+	domain := re.FindStringSubmatch(config.Spec.SenderEmail)[1]
+
+	// Create a new Mailgun client
+	mg := mailgun.NewMailgun(domain, string(apiToken))
+	message := mg.NewMessage(config.Spec.SenderEmail, email.Spec.Subject, email.Spec.Body, email.Spec.RecipientEmail)
+
+	// Set a timeout of 10 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Send the message
+	_, id, err := mg.Send(ctx, message)
+	if err != nil {
+		log.Error(err, "unable to send email")
+		return r.updateEmailStatus(ctx, &email, "Failed", err.Error())
+	}
+
+	// Update the Email status
+	return r.updateEmailStatus(ctx, &email, "Sent", id)
+}
+
+func (r *EmailReconciler) updateEmailStatus(ctx context.Context, email *emailv1.Email, status, messageID string) (ctrl.Result, error) {
+	log := ctrllog.FromContext(ctx)
+
+	// Update the Email status
+	email.Status.DeliveryStatus = status
+	email.Status.MessageID = messageID
+	if status == "Failed" {
+		email.Status.Error = messageID
+	}
+	if err := r.Status().Update(ctx, email); err != nil {
+		log.Error(err, "unable to update Email status")
+		return ctrl.Result{}, err
+	}
+	log.Info("Email status updated successfully", "Email", email)
+	return ctrl.Result{}, nil
 }
