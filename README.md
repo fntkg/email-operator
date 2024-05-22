@@ -1,8 +1,18 @@
 # k8s-operator
-// TODO(user): Add simple overview of use/purpose
+
+Kubernetes operator that manages custom resources for configuring email sending and sending of emails via a transactional email provider like MailerSend.
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+
+> The operator has been built with [Operator SDK](https://sdk.operatorframework.io/).
+
+The CRD Email configuration is located in the `api/v1/email_types.go` file and the driver in `controllers/email_controller.go`.
+The CRD EmailSenderConfig configuration is located in the `api/v1/emailsenderconfig_types.go` file and the driver in `controllers/emailsenderconfig_controller.go`.
+
+The CRD EmailSenderConfig has a parameter not covered in the test statement, `provider`, which is used to configure the transactional email provider to use. Possible values are `mailgun` and `emailsender`. Any other value will produce an error.
+This value is used by the `email_controller.go` driver to determine which provider to use when sending an email.
+
+This decision has been made to simplify the dynamic management of the possible different providers that could be added in the future.
 
 ## Getting Started
 
@@ -13,26 +23,36 @@
 - Access to a Kubernetes v1.11.3+ cluster.
 
 ### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+
+**Generate the manifests**
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/k8s-operator:tag
+make generate
+make manifests
+```
+
+**Build and push your image:**
+
+It will be pushed to the personal registry you specified in the `Makefile` (https://github.com/fntkg/email-operator/blob/main/Makefile#L32).
+
+```sh
+make docker-build
+```
+
+**After building the image, push it to the registry:**
+
+```sh
+make docker-push
 ```
 
 **NOTE:** This image ought to be published in the personal registry you specified. 
 And it is required to have access to pull the image from the working environment. 
 Make sure you have the proper permission to the registry if the above commands don’t work.
 
-**Install the CRDs into the cluster:**
+**Deploy the controller and the operator to the cluster:**
 
 ```sh
-make install
-```
-
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
-
-```sh
-make deploy IMG=<some-registry>/k8s-operator:tag
+make deploy
 ```
 
 > **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin 
@@ -45,29 +65,20 @@ You can apply the samples (examples) from the config/sample:
 kubectl apply -k config/samples/
 ```
 
+There are 2 examples configured.
+1. The first one configures and sends an email using the mailgun provider
+2. The second one does the same but with the mailersend provider.
+
 >**NOTE**: Ensure that the samples has default values to test it out.
 
 ### To Uninstall
 **Delete the instances (CRs) from the cluster:**
-
-```sh
-kubectl delete -k config/samples/
-```
-
-**Delete the APIs(CRDs) from the cluster:**
-
-```sh
-make uninstall
-```
 
 **UnDeploy the controller from the cluster:**
 
 ```sh
 make undeploy
 ```
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
 
 **NOTE:** Run `make help` for more information on all potential `make` targets
 
