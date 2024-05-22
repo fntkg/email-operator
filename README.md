@@ -6,11 +6,11 @@ Kubernetes operator that manages custom resources for configuring email sending 
 
 > The operator has been built with [Operator SDK](https://sdk.operatorframework.io/).
 
-The CRD Email configuration is located in the `api/v1/email_types.go` file and the driver in `controllers/email_controller.go`.
-The CRD EmailSenderConfig configuration is located in the `api/v1/emailsenderconfig_types.go` file and the driver in `controllers/emailsenderconfig_controller.go`.
+The CRD Email configuration is located in the `api/v1/email_types.go` file and the controller in `controllers/email_controller.go`.
+The CRD EmailSenderConfig configuration is located in the `api/v1/emailsenderconfig_types.go` file and the controller in `controllers/emailsenderconfig_controller.go`.
 
-The CRD EmailSenderConfig has a parameter not covered in the test statement, `provider`, which is used to configure the transactional email provider to use. Possible values are `mailgun` and `emailsender`. Any other value will produce an error.
-This value is used by the `email_controller.go` driver to determine which provider to use when sending an email.
+The CRD EmailSenderConfig has a parameter not covered in the assignment statement, `provider`, which is used to configure the email provider to use. Possible values are `mailgun` and `emailsender`. Any other value will produce an error.
+This value is used by the `email_controller.go` controller to determine which provider to use when sending an email.
 
 This decision has been made to simplify the dynamic management of the possible different providers that could be added in the future.
 
