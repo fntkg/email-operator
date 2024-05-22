@@ -6,8 +6,8 @@ Kubernetes operator that manages custom resources for configuring email sending 
 
 > The operator has been built with [Operator SDK](https://sdk.operatorframework.io/).
 
-The CRD Email configuration is located in the `api/v1/email_types.go` file and the controller in `controllers/email_controller.go`.
-The CRD EmailSenderConfig configuration is located in the `api/v1/emailsenderconfig_types.go` file and the controller in `controllers/emailsenderconfig_controller.go`.
+The CRD `Email` configuration is located in the `api/v1/email_types.go` file and the controller in `controllers/email_controller.go`.
+The CRD `EmailSenderConfig` configuration is located in the `api/v1/emailsenderconfig_types.go` file and the controller in `controllers/emailsenderconfig_controller.go`.
 
 The CRD EmailSenderConfig has a parameter not covered in the assignment statement, `provider`, which is used to configure the email provider to use. Possible values are `mailgun` and `emailsender`. Any other value will produce an error.
 This value is used by the `email_controller.go` controller to determine which provider to use when sending an email.
@@ -59,6 +59,21 @@ make deploy
 privileges or be logged in as admin.
 
 **Create instances of your solution**
+
+👀 The first thing you have to do is to upload a secret to the cluster with the proper name that has a data called `apiToken`, make sure to encrypt it with base64
+Example:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+    name: mailersend-token
+type: Opaque
+data:
+    apiToken: YzRlN2ExZTMzNTU4Y2I4ZDRiNDExMjJiNzhlODUyYTExNTYxYWRkY2Y2YTA1NmU0ZTJjMTg3ZTE5ODBiNTVlZA==
+```
+
+Remember that each `EmailSenderConfig` has to point to a secret in the cluster.
+
 You can apply the samples (examples) from the config/sample:
 
 ```sh
@@ -72,7 +87,6 @@ There are 2 examples configured.
 >**NOTE**: Ensure that the samples has default values to test it out.
 
 ### To Uninstall
-**Delete the instances (CRs) from the cluster:**
 
 **UnDeploy the controller from the cluster:**
 
